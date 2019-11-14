@@ -2,11 +2,15 @@ package main
 
 import (
 	"log"
+	"os"
+	"os/signal"
 
 	"github.com/gordonklaus/portaudio"
 )
 
 func main() {
+	sig := make(chan os.Signal, 1)
+	signal.Notify(sig, os.Interrupt, os.Kill)
 	log.Println("starting")
 
 	portaudio.Initialize()
@@ -17,7 +21,7 @@ func main() {
 		panic(err)
 	}
 
-	err := stream.Start()
+	err = stream.Start()
 	if err != nil {
 		panic(err)
 	}
@@ -25,16 +29,21 @@ func main() {
 	for {
 		stream.Read()
 		log.Println(average(in))
+		select {
+		case <-sig:
+			break
+		default:
+		}
 	}
 
-	err := stream.Stop()
+	err = stream.Stop()
 	if err != nil {
 		panic(err)
 	}
 }
 
-func average(input []int) float64 {
-	sum := 0
+func average(input []int32) float64 {
+	sum := int32(0)
 	for _, i := range input {
 		sum += i
 	}
